@@ -4,4 +4,10 @@ from .base import Base
 
 # JUST CALL ONCE TO CREATE TABLES
 # python -m db.init_db
+
+# If remake needed
+# Base.metadata.drop_all(bind=engine)
+
 Base.metadata.create_all(bind=engine)
+
+print('Created all tables.')
