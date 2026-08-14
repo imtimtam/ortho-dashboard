@@ -29,6 +29,7 @@ def etl():
 
     # APPOINTMENTS
     # Add unknown provider to preserve values for joins to fix appointments
+    # Better than dropping it and losing the data
     unknown_provider = pd.DataFrame([{
     'provider_id': 'UNK', 'provider_name': 'Unknown Provider',
     'specialty': 'Unknown', 'primary_location_id': None, 'hire_date': pd.NaT
@@ -39,11 +40,10 @@ def etl():
     invalid_provider_mask = ~appointments_df['provider_id'].isin(set(providers_df['provider_id']))
     appointments_df.loc[invalid_provider_mask, 'provider_id'] = 'UNK'
 
-    # Convert columns to datetime
     appointments_df['date'] = pd.to_datetime(appointments_df['date'], errors='coerce', format='%Y-%m-%d')
     appointments_df['booked_date'] = pd.to_datetime(appointments_df['booked_date'], errors='coerce', format='%Y-%m-%d')
 
-    # Set impossible values to null
+    # Correct impossible values, an appointment can't be booked after its own date
     bad_dates = appointments_df['booked_date'] > appointments_df['date']
     appointments_df.loc[bad_dates, 'booked_date'] = pd.NaT
 
