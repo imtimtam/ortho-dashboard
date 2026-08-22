@@ -6,7 +6,7 @@ from .base import Base
 # python -m db.init_db
 
 # If remake needed
-# Base.metadata.drop_all(bind=engine)
+Base.metadata.drop_all(bind=engine)
 
 Base.metadata.create_all(bind=engine)
 
