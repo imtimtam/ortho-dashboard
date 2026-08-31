@@ -88,7 +88,7 @@ The dashboard includes metrics such as:
 
 ## Interactive Analysis
 
-A shared **Period** control allows users to analyze performance across
+A shared **Period Selector** allows users to analyze performance across
 predefined time windows:
 
 **1W · 1M · 3M · 6M · YTD · 1Y · ALL**
@@ -122,7 +122,7 @@ The report uses a relational model centered around appointment activity.
 -   `public payers` --- payer names and payer classifications
 -   `public calls` --- call activity, call type, and outcomes
 -   `Date` --- dedicated calendar/date dimension used for time-based
-    analysis
+    analysis, generated through Bravo
 
 The model uses relationships between these entities to allow
 operational, financial, and patient metrics to respond consistently to
