@@ -320,7 +320,6 @@ while current <= SEASON_END:
             loc_meta  = provider["_location_meta"]
             prov_vol  = provider["_vol_factor"]
             prov_rev  = provider["_rev_factor"]
-            prov_nsr  = max(0.04, min(0.30, provider["_no_show_base"] + loc_meta["no_show_adj"]))
             p_weights = appt_type_weights_for(provider["specialty"], provider["_location_meta"]["location_id"])
             # Small provider-level monthly variation adds realistic scheduling differences.
             provider_month_factor = 1.0
@@ -349,6 +348,31 @@ while current <= SEASON_END:
                     patient_counter += 1
                 else:
                     pat = random.choice(patients)
+
+                lead_days   = max(0, int(random.gauss(lead_mean, 5)))
+                booked_date = current - timedelta(days=lead_days)
+
+                base_nsr = provider["_no_show_base"] + loc_meta["no_show_adj"]
+
+                lead_factor = 1.0 + max(0, (lead_days - 7) * 0.018)
+
+                # Appointment type adjustments
+                appt_nsr_adj = {
+                    "New Patient Consult":   0.035,
+                    "Follow-up":             0.000,
+                    "Physical Therapy":     -0.020,
+                    "Post-Op Check":        -0.025,
+                    "Injection/Procedure":  -0.015,
+                }
+
+                # New patients no-show more — less established relationship
+                new_patient_adj = 0.025 if is_new else 0.0
+
+                prov_nsr = max(0.04, min(0.40,
+                    base_nsr * lead_factor
+                    + appt_nsr_adj.get(atype, 0.0)
+                    + new_patient_adj
+                ))
 
                 roll = random.random()
                 if roll < prov_nsr:            status = "No-Show"
@@ -393,8 +417,6 @@ while current <= SEASON_END:
                     if BURBANK_CLOSURE_START <= current <= BURBANK_CLOSURE_END:
                         eligible_locations = [x for x in eligible_locations if x != "L3"]
                     loc_id = random.choice(eligible_locations)
-                lead_days   = max(0, int(random.gauss(lead_mean, 5)))
-                booked_date = current - timedelta(days=lead_days)
 
                 appointments.append({
                     "appointment_id": f"A{appt_id}", "date": current.isoformat(),
