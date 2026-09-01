@@ -23,7 +23,7 @@
 
 An interactive Power BI dashboard designed to analyze the operational
 and financial performance of an orthopedic healthcare organization
-across locations, providers, appointments, and payer types.
+across locations, providers, appointments, and payer types. Includes machine-learning to predict no-shows appointments and risk.
 
 ## Dashboard Overview
 
