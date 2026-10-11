@@ -12,18 +12,16 @@
   <br>
   <em>Analysis overview generated in Power BI.</em>
   <br><br>
-  <img src="./images/ortho_locations.png" alt="Power BI Office Location Page" />
+  <img src="./images/ortho_rcm.png" alt="Power BI Office Revenue Cycle Page" />
   <br>
-  <em>A breakdown across orthopedic locations across Southern California.</em>
+  <em>A breakdown of revenue cycle management metrics across offices in Southern California.</em>
   <br><br>
   <img src="./images/ortho_ns_ml.png" alt="Power BI No-Show Risk ML Page" />
   <br>
   <em>A machine learning overview on no-shows and risks of upcoming appointments.</em>
 </p>
 
-An interactive Power BI dashboard designed to analyze the operational
-and financial performance of an orthopedic healthcare organization
-across locations, providers, appointments, and payer types. Includes machine-learning to predict no-shows appointments and risk.
+An interactive Power BI dashboard designed to analyze the operational and financial performance of an orthopedic healthcare organization across locations, providers, appointments, and payer types, including a revenue cycle view of claim denials, collections, and accounts receivable. Includes machine-learning to predict no-shows appointments and risk.
 
 ## Dashboard Overview
 
@@ -31,14 +29,14 @@ The report is organized into six analytical pages, each addressing a
 distinct operational and financial domain of the practice. A shared 
 **Period Selector** (`1W · 1M · 3M · YTD · 1Y · ALL`) drives all 
 period-based KPIs and prior-period comparisons simultaneously across 
-every page.
+every page. The exception is accounts receivable on the Revenue Cycle page, which is an as-of balance and does not change with the selected period.
 
 | Page | Purpose |
 |---|---|
 | **Overview** | High-level snapshot of revenue, appointments, RVU, new patients, and no-show rate across the full practice |
 | **Providers** | Provider-level productivity table with sparklines, appointment volume, revenue, RVU, lead time, no-show rate, and new patient conversion |
 | **Locations** | Cross-location comparison of revenue, appointment type composition, and average vs. median revenue per appointment |
-| **Payers** | Payer mix breakdown by type and individual payer, reimbursement rate differences, and revenue trend by payer type over time |
+| **Revenue Cycle** | Claims performance (denial rate, clean claim rate, net collection rate, write-off %), payer-level denial and payment comparisons, denial reasons by CARC code, and accounts receivable aging |
 | **Growth** | Patient acquisition trends by referral channel, call-type outcomes, and revenue seasonality by calendar month |
 | **No-Show Risk** | Machine learning-powered no-show risk stratification with a High-risk appointment call list and tier validation chart |
 
@@ -61,6 +59,9 @@ The dashboard is designed to help answer questions such as:
 -   How effectively are incoming calls converting into booked
     appointments?
 -   How does performance change between selected periods?
+-   Which payers and services have the highest claim denial rates, and what are the most common denial reasons?
+-   How much revenue is lost to denials that are never recovered?
+-   How long are claims taking to be paid, and how much is still outstanding?
 
 ## Key Findings
 
@@ -68,6 +69,14 @@ The dashboard is designed to help answer questions such as:
 - Total revenue across the full dataset period (Jun 2022–Sep 2026) was **$28,984,786** across **198,821 appointments**, with an average revenue per completed visit of **$176.08** and total RVU of **239,437.15**
 - Commercial payers dominate revenue at **63.68% ($18.46M)**, followed by Medicare at **18.05% ($5.23M)**, Self-Pay at **10.02% ($2.90M)**, and Medicaid at **8.25% ($2.39M)**
 - Commercial payers generate the highest average revenue per appointment at **$197.86**, versus **$165.35** for Medicare, **$148.99** for Medicaid, and **$86.23** for Self-Pay — a **2.3× spread** from top to bottom, illustrating the direct financial impact of payer mix decisions on per-visit revenue
+
+### Revenue Cycle & Claims
+*The claims layer is synthetic. Denial rates, reason codes, and payment lags are assumptions set in `generate_claims.py`, so these figures illustrate the analysis rather than real payer behavior.*
+- **139,976** insured claims were derived from completed appointments (Self-Pay excluded), and **134,767** had been adjudicated by the payer as of 9/5/2026
+- The initial denial rate was **8.0%** by claim count and **10.1%** by dollars. The gap reflects higher denial rates on high-dollar procedures. The clean claim rate (paid on first pass) was **92.0%**
+- The net collection rate was **95.8%** of allowed dollars on resolved claims, and **2.8%** of allowed dollars were written off after denials that could not be recovered
+- Denial rates ranged from about **5%** (Medicare) to about **10%** (Medi-Cal and UnitedHealth) across payers, and from about **16%** for Injection/Procedure visits to about **4%** for Post-Op Check visits
+- Missing authorization (CARC 197) was the largest single denial reason at roughly **35%** of denials
 
 ### Location Performance
 - Pasadena leads all locations in total revenue at **$9.0M**, followed by Burbank at **$6.0M**, Santa Clarita at **$4.5M**, Valencia at **$4.1M**, Northridge at **$3.1M**, Thousand Oaks at **$1.9M**, and Glendale at **$0.4M**
@@ -104,6 +113,21 @@ The dashboard is designed to help answer questions such as:
 
 Total Revenue, Total RVU, Total Appointments, New Patients, No-Show Rate, Average Lead Time, Median Lead Time, Average Revenue per Completed Appointment, Median Revenue per Completed Appointment, Average Revenue per RVU, Call-to-Booking Rate, New Patient Conversion, Revenue by Payer Type (Medicare %, Medicaid %, Commercial %, Self-Pay %), Revenue and appointment trends, Location-level and provider-level performance comparisons, Period-over-period growth.
 
+Revenue cycle: Denial Rate, Clean Claim Rate, Net Collection Rate, Write-off %, Net Days in A/R, and A/R aging by bucket.
+
+### Revenue Cycle Metric Definitions
+
+| Metric | Definition | Time basis |
+|---|---|---|
+| Denial rate | Denied claims ÷ claims adjudicated | Date the payer responded |
+| Clean claim rate | Claims paid on first pass ÷ claims adjudicated | Date the payer responded |
+| Net collection rate | Payer and patient payments ÷ allowed amount, on resolved claims | Date the claim was resolved |
+| Write-off % | Allowed dollars written off ÷ allowed dollars, on resolved claims | Date the claim was resolved |
+| Net days in A/R | Open A/R ÷ average daily allowed revenue (trailing 90 days) | As of the latest data date; ignores the Period Selector |
+| A/R aging | Open A/R grouped by days since claim submission (0-30, 31-60, 61-90, 90+) | As of the latest data date; ignores the Period Selector |
+
+Because claims take weeks to be adjudicated and resolved, windowing by the date each event happened (instead of the date of service) keeps short periods such as 1W and 1M populated and unbiased.
+
 ## Data Model
 
 The report uses a star-schema relational model centered on appointment activity.
@@ -119,10 +143,13 @@ The report uses a star-schema relational model centered on appointment activity.
 -   `public locations` --- location names and geographic attributes
 -   `public payers` --- payer names and payer classifications
 -   `public calls` --- call activity, call type, and outcomes
+-   `public claim_facts` --- view over the synthetic claims layer: one row per billed insured visit, combining claim details (CPT code, billed and allowed amounts, submit date) with the payer's response (denial reason, payments, resolution outcome) and appointment attributes
 -   `Date` --- dedicated calendar/date dimension used for time-based
     analysis, generated through Bravo
 
 Relationships between these entities allow all operational, financial, and patient metrics to respond consistently to report filters.
+
+`Date` acts as a role-playing dimension for claims. `service_date` is the active relationship, while `adjudicated_date` and `resolved_date` are inactive relationships activated inside measures with `USERELATIONSHIP`. A small disconnected `AR Buckets` table drives the aging chart.
 
 ## Project Structure
 ```
@@ -146,14 +173,16 @@ ortho-dashboard/
 ├── images/
 │   ├── ortho_growth.png
 │   ├── ortho_locations.png
+│   ├── ortho_ns_ml.png
 │   ├── ortho_overview.png
-│   ├── ortho_payers.png
-│   └── ortho_providers.png
+│   ├── ortho_providers.png
+│   └── ortho_rcm.png
 ├── notebook/
 │   ├── data_cleaning.ipynb
 │   └── no_show_model.ipynb
 ├── generate_data.py             # Synthetic data generation
 ├── load_data.py                 # ETL: transform and load to PostgreSQL
+├── generate_claims.py           # Claims layer: claims, remittances, claim_facts view
 ├── README.md
 └── requirements.txt
 ```
@@ -165,8 +194,9 @@ ortho-dashboard/
 **Optional:**
 
 2. Run `generate_data.py` to regenerate the synthetic datasets from the current seed. The generator is configurable to produce data at different scales or time ranges.
-3. Review the `db/` folder for the SQLAlchemy models and session setup used to initialize and connect to PostgreSQL.
-4. Open the notebooks in `notebook/` to see the data cleaning pipeline and the no-show prediction model built with scikit-learn.
+3. Load the generated CSVs into PostgreSQL with `load_data.py`, then run `generate_claims.py` from the project root to build the `claims` and `remittances` tables and the `claim_facts` view. It reads the cleaned appointments table, is safe to rerun, and should be rerun whenever the appointments data changes. Run order: `generate_data.py` → `load_data.py` → `generate_claims.py`.
+4. Review the `db/` folder for the SQLAlchemy models and session setup used to initialize and connect to PostgreSQL.
+5. Open the notebooks in `notebook/` to see the data cleaning pipeline and the no-show prediction model built with scikit-learn.
 
 ## Tools Used
 
@@ -190,5 +220,7 @@ This project is licensed under the MIT License.
 The dataset used in this project is synthetic data generated with assistance from Anthropic's Claude and iteratively refined through prompt engineering to produce realistic healthcare operations, appointment, provider, location, payer, and financial patterns.
 
 The data was intentionally designed and adjusted to support the analytical questions addressed by the dashboard. It does not represent real patients, providers, healthcare organizations, or actual financial performance.
+
+The claims layer (claims, denials, denial reason codes, payment lags, and write-offs) is likewise synthetic. Its rates and patterns are assumptions set in `generate_claims.py` and do not reflect real payer behavior.
 
 The Power BI data model, DAX measures, time-intelligence logic, visualizations, dashboard design, and analytical framework were developed as part of this project.
