@@ -33,7 +33,7 @@ every page. The exception is accounts receivable on the Revenue Cycle page, whic
 
 | Page | Purpose |
 |---|---|
-| **Overview** | High-level snapshot of revenue, appointments, RVU, new patients, and no-show rate across the full practice |
+| **Overview** | High-level snapshot of revenue, appointments, RVU, new patients, and no-show rate across the full practice, plus all-time revenue history by payer type and appointment history by location |
 | **Providers** | Provider-level productivity table with sparklines, appointment volume, revenue, RVU, lead time, no-show rate, and new patient conversion |
 | **Locations** | Cross-location comparison of revenue, appointment type composition, and average vs. median revenue per appointment |
 | **Revenue Cycle** | Claims performance (denial rate, clean claim rate, net collection rate, write-off %), payer-level denial and payment comparisons, denial reasons by CARC code, and accounts receivable aging |
@@ -200,7 +200,7 @@ ortho-dashboard/
 
 ## Tools Used
 
-**PostgreSQL** was used to store and query the synthetic dataset — 199,076 appointments, 47,551 calls, 25,858 patients, 7 payers, 27 providers, and 7 locations across Southern California. Tables were designed with normalized relationships and loaded via SQLAlchemy. SQL was used throughout for data validation, row-count checks, and verifying referential integrity across joins before connecting to Power BI.
+**PostgreSQL** was used to store and query the synthetic dataset — 199,420 appointments (198,821 shown in the dashboard after excluding 599 with an unknown provider), 47,300 calls, 26,554 patients, 7 payers, 27 providers, and 7 locations across Southern California. Tables were designed with normalized relationships and loaded via SQLAlchemy. SQL was used throughout for data validation, row-count checks, and verifying referential integrity across joins before connecting to Power BI.
 
 **Power BI Desktop** is the primary analytics layer. The report uses a star-schema data model through import mode, a dedicated `Date` table generated via Bravo for proper time-intelligence, and a custom `Period Selector` table driving dynamic period filtering across all five pages. Visuals include KPI cards with conditional color formatting, line and bar trend charts, clustered comparisons, donut charts for payer mix, and a detailed provider-level table. A report-level filter excludes "Unknown Provider" records from all visuals.
 
